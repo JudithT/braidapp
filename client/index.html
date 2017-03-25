@@ -1,0 +1,278 @@
+<!DOCTYPE html>
+<html ng-app='myApp'>
+<head>
+  <meta charset="utf-8">
+  <title>Braidingapp</title>
+  <script src="angular/angular.js" charset="utf-8"></script>
+  <script src="angular-route/angular-route.js" charset="utf-8"></script>
+  <script>
+  console.log('myApp')
+  var myApp = angular.module('myApp', ['ngRoute']);//must be defined only once for partials to show!
+  myApp.config(function ($routeProvider) {
+  // Routes to load your new and edit pages with new and edit controllers attached to them!
+  $routeProvider
+
+
+
+  .when('/register',{
+    templateUrl:'partials/register.html',
+    controller:'registerController',
+
+  })
+
+  .when('/dashboard',{
+    templateUrl:'partials/dashboard.html',
+    controller:'dashboardController',
+
+  })
+
+    .when('/login',{
+      templateUrl:'partials/login.html',
+      controller:'loginController',
+
+  })
+
+  .when('/tasks',{
+    templateUrl:'partials/tasks.html',
+    controller:'tasksController',
+
+})
+
+  .when('/',{
+    templateUrl:'partials/welcome.html',
+  // controller:'indexController'
+
+  })
+
+
+  .otherwise('/')
+
+  });
+
+//USERS FACTORY
+  myApp.factory('userFactory',['$http',function($http){
+    var user = '';
+    var factory = {};
+
+    // var loginuser;
+    factory.getusers = function(callback){
+      console.log(user);
+      callback(user);
+    }
+
+
+
+    factory.index = function(callback){//will help get all the users.
+      callback(user);
+    }
+
+    factory.adduser = function(newUser,callback){
+      console.log(newUser);
+      $http.post('/register',newUser).then(function(res){
+        user = res.data;
+        console.log(res);//response after sending.
+        if(callback && typeof callback == "function"){
+          callback(res.data);
+        }
+
+      })
+    }
+
+      factory.loginuser = function(regUser,callback){
+        console.log(regUser);
+        $http.post('/login',regUser).then(function(res){
+          console.log(res);//response after sending.
+          if(callback && typeof callback == "function"){
+            callback(res.data);
+          }
+        })
+
+
+    }
+    // factory.create = function(newbucketlist, user, callback){
+    //   // newbucketlist.user = user._id// this will allow me to pass a user with the specific bucketlist to the backend. newbucketlist is an object and I am passing the user
+    //   newbucketlist.user = user;
+    //   console.log(newbucketlist, user )
+    //     $http.post('/bucketlist',newbucketlist).then(function(res){
+    //
+    //       console.log("response:", res)
+    //       bucketlist.push(res.data)
+    //   //   console.log('T');
+    //   //   bucketlist.push(newbucketlist);
+    //     if(callback && typeof callback == "function"){
+    //       callback(res.data);
+    //     }
+    //   })
+    // }
+
+    factory.removeuser = function(user,callback){
+      console.log(user);
+      users.splice(users.index(user), 1);
+      callback(users)
+    }
+    return factory;
+  }]);
+
+//TASKS FACTORY
+  myApp.factory('taskFactory', ['$http',function($http){
+    var tasks = [];
+    var factory = {};
+    factory.index = function(callback){
+      callback(tasks);
+    }
+
+
+    factory.addTask = function(newtask,callback){
+      console.log("newtask:", newtask);
+      $http.post('/tasks',newtask).then(function(res){
+        console.log(res);//response after sending.
+        if(callback && typeof callback == "function"){
+          callback(res.data);
+        }
+
+      })
+
+    };
+
+    factory.getTask = function(callback){
+      $http.get('/tasks').then(function(res){
+        console.log(res);//response after sending.
+        if(callback && typeof callback == "function"){
+          callback(res.data);
+        }
+
+      })
+
+    };
+
+
+    factory.removetask = function(index,callback){
+      tasks.splice(index, 1)
+      callback(tasks)
+    }
+    return factory;
+  }]);
+
+//REGISTER CONTROLLER
+myApp.controller('registerController', ['$scope','userFactory', '$location', function($scope,userFactory,$location)
+{
+
+    // function setusers(data){
+    //   $scope.users = data;
+    //   $scope.players = {}; // i dont need bc i dont need to list all users on the register page
+    // }
+    // $scope.index = function(){
+    //   userFactory.index(setusers);
+    // };
+    // $scope.index();
+
+    $scope.adduser = function(newUser){
+      console.log('hello:', newUser);
+      // var user;
+      $scope.name = newUser.name;
+      $scope.email = newUser.email;
+      $scope.password = newUser.password;
+      // WRITE STUFF HERE TO MAKE USER DISPLAY INFO FROM FORM
+      console.log(newUser) //we sent data to the factory
+      userFactory.adduser(newUser, function(data) {//data has made its round trip and came back.
+        if (data.errors){
+          console.log(data.errors);
+        }else{
+          console.log('success', data);
+          if (data.usertype =="Braider"){
+            $location.url('/tasks')
+          } else{
+            $location.url('/dashboard')
+
+          }
+
+        }
+
+      })
+    }
+
+    // $scope.removeuser = function(index){
+    //   userFactory.removeuser(index,setusers);
+    // }
+}]);
+
+myApp.controller('loginController', ['$scope', 'userFactory', '$location',function($scope,userFactory,$location){
+    $scope.Login = function(regUser){
+      console.log('a new login is happening:',regUser);
+      var user;
+      console.log(regUser);
+      userFactory.loginuser(regUser,function(data){
+        if (data.errors){
+          console.log(data.errors);
+        }else{
+          console.log('success',data);
+          $location.url('/dashboard')
+        }
+      })
+    }
+
+
+}])
+
+myApp.controller('dashboardController',['$scope','userFactory','taskFactory','$location', function($scope,userFactory,taskFactory,$location){
+
+//
+userFactory.getusers(function(user){
+console.log("get:", user);
+$scope.user = user;
+
+})
+
+  $scope.addTask = function(newtask){
+
+    console.log('hello:', newtask);
+    var user;
+    $scope.title = newtask.title;
+    $scope.description = newtask.description;
+    $scope.location = newtask.location;
+    $scope.detail = newtask.detail;
+
+    console.log('hi', newtask);
+    taskFactory.addTask(newtask, function(data){
+      if(data.errors){
+        console.log(data.errors);
+      }else{
+        $scope.newtask ={};
+        console.log('success', data);
+        $location.url('/dashboard')
+      }
+
+    })
+  }
+
+
+}])
+
+myApp.controller('tasksController',['$scope','userFactory','taskFactory','$location',function($scope,userFactory,taskFactory,$location){
+
+  userFactory.getusers(function(user){
+  console.log("get:", user);
+  $scope.user = user;
+
+  })
+
+    taskFactory.getTask(function(data){
+      $scope.tasks = data;
+
+
+
+})
+
+}])
+
+
+</script>
+</head>
+<body>
+
+
+
+
+  <div ng-view=""></div>
+</body>
+</html>
